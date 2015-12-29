@@ -3,49 +3,68 @@ import re
 
 measurepat = re.compile("(\S+) can fly (\d+) \S+ for (\d+) seconds, .+ (\d+) seconds")
 
-def race(speed,stamina,restup,time):
+def race(reindeer,time):
     state = 'run'
-    distance = 0
-    cur_run = 0
-    cur_rest = 0
-    for sec in range(time):
-        if state == 'run':
-            distance += speed
-            cur_run += 1
-            if cur_run >= stamina:
-                state = 'rest'
-                cur_run = 0
+    distances = {}
+    states = {}
+    points = {}
+    for r in reindeer.keys():
+        distances[r] = 0
+        points[r] = 0
+        states[r] = { 'state' : 'run',
+                      'run'   : 0,
+                      'rest'  : 0 }
 
-        elif state == 'rest':
-            cur_rest += 1
-            if cur_rest >= restup:
-                state = 'run'
-                cur_rest = 0
-    return distance
+    for sec in range(time):
+        for r in reindeer:
+            state = states[r]
+            stats = reindeer[r]
+
+            if state['state'] == 'run':
+                distances[r] += stats['speed']
+                state['run'] += 1
+                
+                if state['run'] >= stats['stamina']:
+                    state['state'] = 'rest'
+                    state['run'] = 0
+                
+            elif state['state'] == 'rest':
+                state['rest'] += 1
+                if state['rest'] >= stats['restup']:
+                    state['state'] = 'run'
+                    state['rest'] = 0
+            state[r] = state
+
+        max_distance = max(distances.values())
+        for d in sorted(distances,key=distances.get,reverse=True):
+            if distances[d] < max_distance:
+                break
+            points[d] += 1
+            
+            
+    return (distances,points)
         
 
 TOTAL_TIME = 2503
 f = open("input","rb")
 
 reindeer = {}
-results = {}
 for line in f:
     line = line.rstrip()
     m = measurepat.match(line)
     if m:
         #print m.group(1), m.group(2), m.group(3), m.group(4)
-        results[m.group(1)] = race(int(m.group(2)),
-                                   int(m.group(3)),
-                                   int(m.group(4)),
-                                   TOTAL_TIME)
-        reindeer[m.group(1)] = { "speed": int(m.group(2)),
+        reindeer[m.group(1)] = { "speed":   int(m.group(2)),
                                  "stamina": int(m.group(3)),
-                                 "resttime": int(m.group(4)) }
+                                 "restup":  int(m.group(4)) }
     else:
         print "no match for ",line
 
+(run_distances,pts) = race(reindeer, TOTAL_TIME)
+for r in sorted(run_distances,key=run_distances.get,reverse=True):
+    print r,pts[r],run_distances[r]
 
                   
-
-for rd in sorted(results,key=results.get,reverse=True):
-    print rd,results[rd]
+#
+#for rd in sorted(results,key=results.get,reverse=True):
+#    print rd,results[rd]
